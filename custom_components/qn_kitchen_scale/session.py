@@ -1,9 +1,10 @@
 """Turn the raw 5 Hz stream into discrete measurements.
 
 A *measurement* is a stable reading that stayed the same for a few frames and
-differs from the previous measurement. Putting a bowl on the scale, then
-adding flour, then adding sugar yields three measurements, each with the
-difference to the previous one, so the log reads like a recipe.
+differs from the previous measurement; negative readings after tare count too.
+Putting a bowl on the scale, then adding flour, then adding sugar yields three
+measurements, each with the difference to the previous one, so the log reads
+like a recipe.
 
 This module is pure: the caller passes the time in.
 """
@@ -94,7 +95,7 @@ class MeasurementLog:
             return None
         self._recorded_this_streak = True
 
-        if frame.weight_g < self.min_weight_g:
+        if abs(frame.weight_g) < self.min_weight_g:
             # Empty scale: the next load is a fresh item.
             self._last_recorded_g = None
             return None

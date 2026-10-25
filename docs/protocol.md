@@ -31,13 +31,17 @@ Subscribing to `FFF1` is enough; the scale streams at about 5 Hz with no command
 |---|---|
 | 0–1 | header `10 12` (`0x12` = 18, the length) |
 | 2–7 | constant `00 4c 01 02 05 01` in every frame seen |
-| 8 | flags: bit 3 set when the reading is stable. Seen: `B9` stable, `B1` moving at zero, `B3` moving under load |
-| 9–10 | weight, unsigned big-endian, unit 0.1 g (`0x197D` = 6525 → 652.5 g) |
-| 11–16 | constant `7e 1f 02 58 02 01` in every frame seen |
+| 8 | flags: bit 0 positive (clear after tare when the reading is negative), bit 3 stable, bit 4 set while in 0.1 g steps. Seen: `B9` +stable, `B1` +moving at zero, `B3` +moving under load, `A9` +stable ≥ 1 kg, `AA` −stable, `A2` −moving, `B0` moving at zero right after tare |
+| 9–10 | magnitude of the weight, unsigned big-endian, in units of 10^−(byte 16) g (`0x197D` = 6525 → 652.5 g; `0x063B` = 1595 → 1595 g) |
+| 11 | `7e` in 0.1 g mode, `3e` in 1 g mode |
+| 12–15 | constant `1f 02 58 02` in every frame seen |
+| 16 | decimals: `01` below 1 kg (0.1 g steps), `00` from 1 kg up (1 g steps) |
 | 17 | checksum: sum of bytes 0–16 modulo 256 |
 
+Pressing tare sends one short frame `15 04 01 1a` before the weight frames resume at zero.
+
 Only grams were observed; the display unit button was not exercised, so other units may change
-bytes 11–16 or the scale factor. Reports welcome.
+bytes 11–15 or the scale factor. Reports welcome.
 
 ## Differences from QN body scales
 

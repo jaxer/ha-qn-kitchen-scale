@@ -89,6 +89,16 @@ def test_measurement_survives_a_round_trip_through_dict() -> None:
     assert Measurement.from_dict(m.as_dict()) == m
 
 
+def test_tare_then_lifting_records_the_negative_weight() -> None:
+    log = MeasurementLog()
+    log.start_session()
+    frames = [stable(1595)] * 3 + [moving(0)] + [moving(-1591)] + [stable(-1599)] * 3
+    assert [(m.weight_g, m.delta_g) for m in feed(log, frames)] == [
+        (1595.0, None),
+        (-1599.0, -3194.0),
+    ]
+
+
 def test_clear_forgets_everything() -> None:
     log = MeasurementLog()
     log.start_session()

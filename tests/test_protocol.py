@@ -2,7 +2,19 @@
 
 from custom_components.qn_kitchen_scale.protocol import Frame, parse_frame
 
-from .frames import MOVING_444, MOVING_ZERO, STABLE_1_5, STABLE_652_5, STABLE_ZERO, stable
+from .frames import (
+    MOVING_444,
+    MOVING_MINUS_1591,
+    MOVING_ZERO,
+    STABLE_1_5,
+    STABLE_652_5,
+    STABLE_1595,
+    STABLE_MINUS_1599,
+    STABLE_ZERO,
+    TARE_EVENT,
+    moving,
+    stable,
+)
 
 
 def test_stable_zero() -> None:
@@ -33,5 +45,21 @@ def test_wrong_length_or_header_is_rejected() -> None:
     assert parse_frame(b"") is None
 
 
-def test_builder_round_trips_the_captured_frame() -> None:
+def test_above_one_kilogram_the_scale_counts_whole_grams() -> None:
+    assert parse_frame(STABLE_1595) == Frame(weight_g=1595.0, stable=True, flags=0xA9)
+
+
+def test_negative_readings_after_tare() -> None:
+    assert parse_frame(STABLE_MINUS_1599) == Frame(weight_g=-1599.0, stable=True, flags=0xAA)
+    assert parse_frame(MOVING_MINUS_1591) == Frame(weight_g=-1591.0, stable=False, flags=0xA2)
+
+
+def test_tare_event_is_not_a_weight_frame() -> None:
+    assert parse_frame(TARE_EVENT) is None
+
+
+def test_builders_round_trip_the_captured_frames() -> None:
     assert stable(652.5) == STABLE_652_5
+    assert stable(1595) == STABLE_1595
+    assert parse_frame(stable(-1599)) == parse_frame(STABLE_MINUS_1599)
+    assert parse_frame(moving(-1591)) == parse_frame(MOVING_MINUS_1591)
