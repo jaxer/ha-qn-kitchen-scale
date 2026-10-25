@@ -30,14 +30,33 @@ Subscribing to `FFF1` is enough; the scale streams at about 5 Hz with no command
 | Offset | Meaning |
 |---|---|
 | 0–1 | header `10 12` (`0x12` = 18, the length) |
-| 2–7 | constant `00 4c 01 02 05 01` in every frame seen |
-| 8 | flags: bit 3 set when the reading is stable. Seen: `B9` stable, `B1` moving at zero, `B3` moving under load |
-| 9–10 | weight, unsigned big-endian, unit 0.1 g (`0x197D` = 6525 → 652.5 g) |
-| 11–16 | constant `7e 1f 02 58 02 01` in every frame seen |
+| 2–6 | constant `00 4c 01 02 05` in every frame seen |
+| 7 | unit shown on the display, one bit each: `01` g, `02` ml, `04` ml (milk), `08` oz, `10` lb:oz. The weight in the frame stays in grams |
+| 8 | flags, see below |
+| 9–10 | magnitude of the weight, unsigned big-endian, in 0.1 g when flag bit 4 is set, else in 1 g (`0x197D` = 6525 → 652.5 g; `0x0641` = 1601 → 1601 g) |
+| 11 | `7e` in 0.1 g steps, `3e` in 1 g steps (bit 6 mirrors flag bit 4) |
+| 12–15 | constant `1f 02 58 02` in every frame seen |
+| 16 | decimals the display shows in the current unit: `01` for g below 1 kg, oz and lb:oz; `00` for g from 1 kg up and for ml. Not needed to decode the weight |
 | 17 | checksum: sum of bytes 0–16 modulo 256 |
 
-Only grams were observed; the display unit button was not exercised, so other units may change
-bytes 11–16 or the scale factor. Reports welcome.
+### Flags (byte 8)
+
+| Bit | Meaning |
+|---|---|
+| 0–1 | tare state: `00` no tare, positive weight; `01` tare set, net weight zero or positive; `11` tare set, positive; `10` tare set, **negative** |
+| 2 | always 0 |
+| 3 | reading is stable |
+| 4 | 0.1 g steps (below 1 kg) |
+| 5, 7 | always 1 |
+| 6 | always 0 |
+
+Values seen: `B9` stable, `B1` moving at zero, `B3` moving under load (0.1 g steps, tare set);
+`A8` stable 1600 g right after power-on (no tare); `AB` stable +1601 g after tare; `AA` stable −1599 g after
+tare and lifting the object; `A2` the same while moving.
+
+Pressing tare sends one short frame `15 04 01 1a` before the weight frames resume at zero. Pressing tare
+with nothing on the scale clears the tare state (bits 0–1 return to `00`). Switching the scale off and on
+clears it as well.
 
 ## Differences from QN body scales
 

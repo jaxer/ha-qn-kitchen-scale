@@ -10,21 +10,46 @@ MOVING_ZERO = bytes.fromhex("1012004c01020501b1000f7e1f0258020131")
 MOVING_444 = bytes.fromhex("1012004c01020501b311587e1f025802018d")
 # A 652.5 g object left on the scale, reading settled.
 STABLE_652_5 = bytes.fromhex("1012004c01020501b9197d7e1f02580201c0")
+# 1595 g: above 1 kg the scale switches to 1 g steps (byte 16 = 0, flag bit 4 clear).
+STABLE_1595 = bytes.fromhex("1012004c01020501a9063b3e1f025802001a")
+# Tare pressed with 1595 g on, then the object removed: display −1599 g, settled.
+STABLE_MINUS_1599 = bytes.fromhex("1012004c01020501aa063f3e1f025802001f")
+# −1591 g, still moving.
+MOVING_MINUS_1591 = bytes.fromhex("1012004c01020501a206373e1f025802000f")
+# Sent once when tare is pressed; not a weight frame.
+TARE_EVENT = bytes.fromhex("1504011a")
+# 1600 g right after power-on, no tare ever pressed (flag bits 0-1 clear).
+STABLE_1600_NO_TARE = bytes.fromhex("1012004c01020501a806403e1f025802001e")
+# Same object after tare was pressed and it was put back: +1601 g net, tare set.
+STABLE_1601_TARED = bytes.fromhex("1012004c01020501ab06413e1f0258020022")
+# Display switched to ounces: the frame still carries 1601 g, display decimals = 1.
+STABLE_1601_OZ_DISPLAY = bytes.fromhex("1012004c01020508ab06413e1f025802012a")
+# Display switched to lb:oz, same 1601 g.
+STABLE_1601_LB_OZ_DISPLAY = bytes.fromhex("1012004c01020510ab06413e1f0258020132")
+
+
+def _frame(weight_g: float, stable_flag: bool) -> bytes:
+    """Build a frame the way the scale does: sign in the flags, 0.1 g steps below 1 kg."""
+    magnitude = abs(weight_g)
+    decimals = 1 if magnitude < 1000 else 0
+    flags = 0xA0 | (0x10 if decimals else 0) | (0x08 if stable_flag else 0)
+    flags |= 0x01 if weight_g >= 0 else 0x02  # tare set; negative only with tare
+    raw = round(magnitude * 10**decimals)
+    body = (
+        bytes.fromhex("1012004c01020501")
+        + bytes([flags])
+        + raw.to_bytes(2, "big")
+        + (bytes.fromhex("7e1f025802") if decimals else bytes.fromhex("3e1f025802"))
+        + bytes([decimals])
+    )
+    return body + bytes([sum(body) & 0xFF])
 
 
 def stable(weight_g: float) -> bytes:
     """Build a stable frame for any weight, with a valid checksum."""
-    raw = round(weight_g * 10)
-    body = (
-        bytes.fromhex("1012004c01020501b9") + raw.to_bytes(2, "big") + bytes.fromhex("7e1f02580201")
-    )
-    return body + bytes([sum(body) & 0xFF])
+    return _frame(weight_g, True)
 
 
 def moving(weight_g: float) -> bytes:
     """Build a moving (unstable) frame for any weight."""
-    raw = round(weight_g * 10)
-    body = (
-        bytes.fromhex("1012004c01020501b3") + raw.to_bytes(2, "big") + bytes.fromhex("7e1f02580201")
-    )
-    return body + bytes([sum(body) & 0xFF])
+    return _frame(weight_g, False)

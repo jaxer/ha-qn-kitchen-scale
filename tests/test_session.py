@@ -59,8 +59,31 @@ def test_flicker_between_adjacent_readings_is_noise() -> None:
     """A real scale alternates 465.0 / 465.5 g while nothing changes."""
     log = MeasurementLog()
     log.start_session()
-    frames = ([stable(465.0)] * 3 + [stable(465.5)] * 3) * 4 + [stable(467.0)] * 3
-    assert [m.weight_g for m in feed(log, frames)] == [465.0, 467.0]
+    frames = ([stable(465.0)] * 3 + [stable(465.5)] * 3) * 4 + [stable(475.0)] * 3
+    assert [m.weight_g for m in feed(log, frames)] == [465.0, 475.0]
+
+
+def test_small_drift_of_a_heavy_load_is_within_tolerance() -> None:
+    """At 1.5 kg the scale wanders by a few grams; 1 % absorbs that."""
+    log = MeasurementLog()
+    log.start_session()
+    frames = (
+        [stable(1595)] * 3
+        + [moving(1600)]
+        + [stable(1601)] * 3
+        + [moving(1620)]
+        + [stable(1625)] * 3
+    )
+    assert [m.weight_g for m in feed(log, frames)] == [1595.0, 1625.0]
+
+
+def test_tolerance_never_drops_below_one_gram() -> None:
+    log = MeasurementLog()
+    log.start_session()
+    frames = (
+        [stable(20.0)] * 3 + [moving(20.4)] + [stable(20.5)] * 3 + [moving(21)] + [stable(21.0)] * 3
+    )
+    assert [m.weight_g for m in feed(log, frames)] == [20.0, 21.0]
 
 
 def test_history_is_newest_first_and_bounded() -> None:
@@ -87,6 +110,16 @@ def test_new_session_restarts_deltas() -> None:
 def test_measurement_survives_a_round_trip_through_dict() -> None:
     m = Measurement(at=T0, weight_g=12.5, delta_g=-3.0, session=4)
     assert Measurement.from_dict(m.as_dict()) == m
+
+
+def test_tare_then_lifting_records_the_negative_weight() -> None:
+    log = MeasurementLog()
+    log.start_session()
+    frames = [stable(1595)] * 3 + [moving(0)] + [moving(-1591)] + [stable(-1599)] * 3
+    assert [(m.weight_g, m.delta_g) for m in feed(log, frames)] == [
+        (1595.0, None),
+        (-1599.0, -3194.0),
+    ]
 
 
 def test_clear_forgets_everything() -> None:
