@@ -1,3 +1,85 @@
 # QN Kitchen Scale for Home Assistant
 
-Local Bluetooth integration for QN-KS kitchen scales (sold as Yolanda CK10A, Arboleaf CK10A and other rebrands).
+[![CI](https://github.com/jaxer/ha-qn-kitchen-scale/actions/workflows/ci.yml/badge.svg)](https://github.com/jaxer/ha-qn-kitchen-scale/actions/workflows/ci.yml)
+[![HACS](https://img.shields.io/badge/HACS-custom-41BDF5.svg)](https://hacs.xyz)
+
+Local Bluetooth integration for **QN-KS** kitchen scales: the ones sold as **Yolanda CK10A**,
+**Arboleaf CK10A** and under other names, with the "Yolanda" / "Arboleaf" phone app.
+No cloud, no app: Home Assistant connects to the scale through any Bluetooth adapter or
+ESPHome Bluetooth proxy and reads the weight stream directly.
+
+## What you get
+
+| Entity | Meaning |
+|---|---|
+| `sensor.qn_ks_weight` | What the display shows right now, 0.1 g, about 5 updates per second while the weight changes. Unavailable while the scale sleeps. Attribute `stable`. |
+| `sensor.qn_ks_last_measurement` | The newest **measurement**: a reading that settled for a moment. Attributes: `measured_at`, `delta_g` (change since the previous measurement in the same session), `session`, and `measurements`, the newest-first history of the last 50. |
+| `sensor.qn_ks_battery` | Battery level, read when the scale connects. |
+| `binary_sensor.qn_ks_connected` | On while Home Assistant holds the connection. |
+
+A *measurement* is recorded when a non-zero reading stays stable for three frames and differs from
+the previous measurement by at least 1 g. Put a bowl on the scale, add flour, add sugar: that is
+three measurements, each with its delta, so the history reads like a recipe. Lifting everything off
+resets the deltas; switching the scale off and on starts a new session.
+
+The history survives restarts. The `qn_kitchen_scale.clear_measurements` action empties it.
+
+## Requirements
+
+* Home Assistant 2026.4 or newer with the [Bluetooth](https://www.home-assistant.io/integrations/bluetooth/)
+  integration: a local adapter or an [ESPHome Bluetooth proxy](https://esphome.io/components/bluetooth_proxy)
+  with `active: true` within range of the scale.
+* The scale cannot be connected to the phone app and Home Assistant at the same time.
+
+## Installation
+
+### HACS
+
+1. HACS → Integrations → ⋮ → *Custom repositories*, add `https://github.com/jaxer/ha-qn-kitchen-scale`
+   as an *Integration*.
+2. Install **QN Kitchen Scale** and restart Home Assistant.
+
+### Manual
+
+Copy `custom_components/qn_kitchen_scale` into your `config/custom_components` folder and restart.
+
+## Setup
+
+Switch the scale on. Home Assistant discovers it (`QN-KS`) and offers to add it under
+Settings → Devices & services. You can also add it by hand from the same page while the scale is awake:
+search for "QN", "Yolanda" or "Arboleaf".
+
+## Showing the history on a dashboard
+
+A Markdown card renders the `measurements` attribute as a table, newest first:
+
+```yaml
+type: markdown
+title: Весы
+content: >-
+  {% set items = state_attr('sensor.qn_ks_last_measurement', 'measurements') or [] %}
+  | Время | Вес | Δ |
+  |---|---:|---:|
+  {% for m in items[:15] -%}
+  | {{ as_timestamp(m.at) | timestamp_custom('%H:%M:%S') }} | {{ m.weight_g }} g | {{ '' if m.delta_g is none else ('%+.1f g' % m.delta_g) }} |
+  {% endfor %}
+```
+
+## Protocol
+
+Documented in [docs/protocol.md](docs/protocol.md). The parser lives in
+[`protocol.py`](custom_components/qn_kitchen_scale/protocol.py) and the measurement detector in
+[`session.py`](custom_components/qn_kitchen_scale/session.py); both are pure Python with tests
+against frames captured from a real scale.
+
+## Development
+
+```bash
+python3.14 -m venv .venv && . .venv/bin/activate
+pip install -r requirements_test.txt
+ruff check . && ruff format --check . && pytest
+```
+
+## License
+
+MIT
