@@ -12,7 +12,7 @@ ESPHome Bluetooth proxy and reads the weight stream directly.
 
 | Entity | Meaning |
 |---|---|
-| `sensor.qn_ks_weight` | What the display shows right now, including negative values after tare: 0.1 g steps below 1 kg, 1 g steps above, about 5 updates per second while the weight changes. Unavailable while the scale sleeps. Attribute `stable`. |
+| `sensor.qn_ks_weight` | What the display shows right now, including negative values after tare: 0.1 g steps below 1 kg, 1 g steps above, about 5 updates per second while the weight changes. Unavailable while the scale sleeps. Attributes `stable`, `tare` (tare set on the scale) and `display_unit` (what the display shows: g, ml, ml_milk, oz, lb_oz; the sensor is always in grams). |
 | `sensor.qn_ks_last_measurement` | The newest **measurement**: a reading that settled for a moment. Attributes: `measured_at`, `delta_g` (change since the previous measurement in the same session), `session`, and `measurements`, the newest-first history of the last 50. |
 | `sensor.qn_ks_battery` | Battery level, read when the scale connects. |
 | `binary_sensor.qn_ks_connected` | On while Home Assistant holds the connection. |

@@ -57,8 +57,9 @@ class WeightSensor(QnKitchenScaleEntity, SensorEntity):
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        """Whether the reading has settled."""
-        return {"stable": self.coordinator.data.stable}
+        """Whether the reading has settled, tare state and the unit on the display."""
+        data = self.coordinator.data
+        return {"stable": data.stable, "tare": data.tare, "display_unit": data.display_unit}
 
 
 class LastMeasurementSensor(QnKitchenScaleEntity, SensorEntity):

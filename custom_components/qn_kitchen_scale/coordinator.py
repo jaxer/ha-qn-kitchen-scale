@@ -48,6 +48,8 @@ class ScaleState:
     connected: bool = False
     weight_g: float | None = None
     stable: bool = False
+    tare: bool = False
+    display_unit: str = "g"
     battery: int | None = None
     measurements: tuple[Measurement, ...] = field(default_factory=tuple)
 
@@ -182,14 +184,20 @@ class QnKitchenScaleCoordinator(DataUpdateCoordinator[ScaleState]):
         measurement = self.log.feed(frame, dt_util.utcnow())
         if measurement is not None:
             self._store.async_delay_save(self._serialise, _SAVE_DELAY_S)
-        changed = (
-            measurement is not None
-            or frame.weight_g != self.data.weight_g
-            or frame.stable != self.data.stable
-        )
+        changed = measurement is not None or (
+            frame.weight_g,
+            frame.stable,
+            frame.tare,
+            frame.display_unit,
+        ) != (self.data.weight_g, self.data.stable, self.data.tare, self.data.display_unit)
         if changed:
             self.data = replace(
-                self.data, connected=True, weight_g=frame.weight_g, stable=frame.stable
+                self.data,
+                connected=True,
+                weight_g=frame.weight_g,
+                stable=frame.stable,
+                tare=frame.tare,
+                display_unit=frame.display_unit,
             )
             self._publish()
 

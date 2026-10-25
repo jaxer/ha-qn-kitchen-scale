@@ -18,6 +18,14 @@ STABLE_MINUS_1599 = bytes.fromhex("1012004c01020501aa063f3e1f025802001f")
 MOVING_MINUS_1591 = bytes.fromhex("1012004c01020501a206373e1f025802000f")
 # Sent once when tare is pressed; not a weight frame.
 TARE_EVENT = bytes.fromhex("1504011a")
+# 1600 g right after power-on, no tare ever pressed (flag bits 0-1 clear).
+STABLE_1600_NO_TARE = bytes.fromhex("1012004c01020501a806403e1f025802001e")
+# Same object after tare was pressed and it was put back: +1601 g net, tare set.
+STABLE_1601_TARED = bytes.fromhex("1012004c01020501ab06413e1f0258020022")
+# Display switched to ounces: the frame still carries 1601 g, display decimals = 1.
+STABLE_1601_OZ_DISPLAY = bytes.fromhex("1012004c01020508ab06413e1f025802012a")
+# Display switched to lb:oz, same 1601 g.
+STABLE_1601_LB_OZ_DISPLAY = bytes.fromhex("1012004c01020510ab06413e1f0258020132")
 
 
 def _frame(weight_g: float, stable_flag: bool) -> bytes:
@@ -25,7 +33,7 @@ def _frame(weight_g: float, stable_flag: bool) -> bytes:
     magnitude = abs(weight_g)
     decimals = 1 if magnitude < 1000 else 0
     flags = 0xA0 | (0x10 if decimals else 0) | (0x08 if stable_flag else 0)
-    flags |= 0x01 if weight_g >= 0 else 0x02
+    flags |= 0x01 if weight_g >= 0 else 0x02  # tare set; negative only with tare
     raw = round(magnitude * 10**decimals)
     body = (
         bytes.fromhex("1012004c01020501")
