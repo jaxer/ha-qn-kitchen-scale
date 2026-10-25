@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from dataclasses import dataclass, field, replace
+from datetime import datetime, timedelta
 from typing import Any
 
 from bleak import BleakClient
@@ -13,6 +14,7 @@ from bleak.exc import BleakError
 from bleak_retry_connector import BleakClientWithServiceCache, establish_connection
 from homeassistant.components import bluetooth
 from homeassistant.components.bluetooth import (
+    MONOTONIC_TIME,
     BluetoothCallbackMatcher,
     BluetoothChange,
     BluetoothScanningMode,
@@ -20,6 +22,7 @@ from homeassistant.components.bluetooth import (
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
+from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util import dt as dt_util
@@ -37,6 +40,11 @@ _LOGGER = logging.getLogger(__name__)
 
 _CONNECT_ATTEMPTS = 3
 _SAVE_DELAY_S = 2.0
+# Home Assistant does not pass on an advertisement identical to the last one it saw, so a scale
+# that wakes up looking exactly as before can go unnoticed; check every few seconds as well.
+_RETRY_INTERVAL = timedelta(seconds=5)
+# Only retry while the scale was heard this recently: an older advertisement means it sleeps.
+_AWAKE_WITHIN_S = 15.0
 
 type QnKitchenScaleConfigEntry = ConfigEntry[QnKitchenScaleCoordinator]
 
@@ -81,6 +89,7 @@ class QnKitchenScaleCoordinator(DataUpdateCoordinator[ScaleState]):
         self._client: BleakClient | None = None
         self._connect_lock = asyncio.Lock()
         self._unregister_advertisements: CALLBACK_TYPE | None = None
+        self._cancel_retry: CALLBACK_TYPE | None = None
         self.data = ScaleState()
 
     async def async_start(self) -> None:
@@ -98,6 +107,9 @@ class QnKitchenScaleCoordinator(DataUpdateCoordinator[ScaleState]):
             BluetoothCallbackMatcher(address=self.address, connectable=True),
             BluetoothScanningMode.ACTIVE,
         )
+        self._cancel_retry = async_track_time_interval(
+            self.hass, self._retry_if_awake, _RETRY_INTERVAL
+        )
         if bluetooth.async_ble_device_from_address(self.hass, self.address, connectable=True):
             self.hass.async_create_task(self._async_connect())
 
@@ -106,6 +118,9 @@ class QnKitchenScaleCoordinator(DataUpdateCoordinator[ScaleState]):
         if self._unregister_advertisements:
             self._unregister_advertisements()
             self._unregister_advertisements = None
+        if self._cancel_retry:
+            self._cancel_retry()
+            self._cancel_retry = None
         client = self._client
         self._client = None
         if client and client.is_connected:
@@ -125,6 +140,14 @@ class QnKitchenScaleCoordinator(DataUpdateCoordinator[ScaleState]):
         self, service_info: BluetoothServiceInfoBleak, change: BluetoothChange
     ) -> None:
         if self._client is None:
+            self.hass.async_create_task(self._async_connect())
+
+    @callback
+    def _retry_if_awake(self, _: datetime) -> None:
+        if self._client is not None or self._connect_lock.locked():
+            return
+        info = bluetooth.async_last_service_info(self.hass, self.address, connectable=True)
+        if info is not None and MONOTONIC_TIME() - info.time < _AWAKE_WITHIN_S:
             self.hass.async_create_task(self._async_connect())
 
     async def _async_connect(self) -> None:

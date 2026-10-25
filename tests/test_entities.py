@@ -1,10 +1,14 @@
 """Entities react to frames and remember measurements across restarts."""
 
-from unittest.mock import patch
+from datetime import timedelta
+from unittest.mock import Mock, patch
 
+import pytest
+from homeassistant.components.bluetooth import MONOTONIC_TIME
 from homeassistant.const import CONF_ADDRESS, STATE_UNAVAILABLE
 from homeassistant.core import HomeAssistant
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+from homeassistant.util import dt as dt_util
+from pytest_homeassistant_custom_component.common import MockConfigEntry, async_fire_time_changed
 
 from custom_components.qn_kitchen_scale.const import DOMAIN
 from custom_components.qn_kitchen_scale.protocol import parse_frame
@@ -94,3 +98,22 @@ async def test_clear_service_empties_the_history(hass: HomeAssistant) -> None:
     await hass.async_block_till_done()
     await hass.services.async_call(DOMAIN, "clear_measurements", blocking=True)
     assert hass.states.get("sensor.qn_ks_last_measurement").attributes["measurements"] == []
+
+
+@pytest.mark.parametrize(("heard_s_ago", "connects"), [(2, True), (60, False)])
+async def test_connects_while_the_scale_is_heard_without_a_callback(
+    hass: HomeAssistant, heard_s_ago: float, connects: bool
+) -> None:
+    # Home Assistant drops an advertisement identical to the last one, so no callback arrives.
+    entry = await setup_scale(hass)
+    heard = Mock(time=MONOTONIC_TIME() - heard_s_ago)
+    with (
+        patch(
+            "custom_components.qn_kitchen_scale.coordinator.bluetooth.async_last_service_info",
+            return_value=heard,
+        ),
+        patch.object(entry.runtime_data, "_async_connect") as connect,
+    ):
+        async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=6))
+        await hass.async_block_till_done()
+    assert connect.called is connects

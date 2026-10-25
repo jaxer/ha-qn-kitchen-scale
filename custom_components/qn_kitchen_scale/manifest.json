@@ -1,6 +1,7 @@
 {
   "domain": "qn_kitchen_scale",
   "name": "QN Kitchen Scale (Yolanda, Arboleaf CK10A)",
+  "after_dependencies": ["frontend", "http"],
   "bluetooth": [
     {
       "local_name": "QN-KS",
