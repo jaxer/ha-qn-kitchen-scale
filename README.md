@@ -18,7 +18,7 @@ ESPHome Bluetooth proxy and reads the weight stream directly.
 | `binary_sensor.qn_ks_connected` | On while Home Assistant holds the connection. |
 
 A *measurement* is recorded when a non-zero reading stays stable for three frames and differs from
-the previous measurement by at least 0.5 g. Put a bowl on the scale, add flour, add sugar: that is
+the previous measurement by at least 1 g. Put a bowl on the scale, add flour, add sugar: that is
 three measurements, each with its delta, so the history reads like a recipe. Lifting everything off
 resets the deltas; switching the scale off and on starts a new session.
 

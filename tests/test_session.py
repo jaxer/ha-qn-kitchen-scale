@@ -55,17 +55,12 @@ def test_removing_and_replacing_the_same_item_records_it_again() -> None:
     assert [m.weight_g for m in feed(log, frames)] == [500.0, 500.0]
 
 
-def test_tiny_changes_are_noise() -> None:
-    log = MeasurementLog(min_delta_g=0.5)
+def test_flicker_between_adjacent_readings_is_noise() -> None:
+    """A real scale alternates 465.0 / 465.5 g while nothing changes."""
+    log = MeasurementLog()
     log.start_session()
-    frames = (
-        [stable(100.0)] * 3
-        + [moving(100.2)]
-        + [stable(100.3)] * 3
-        + [moving(101)]
-        + [stable(101.0)] * 3
-    )
-    assert [m.weight_g for m in feed(log, frames)] == [100.0, 101.0]
+    frames = ([stable(465.0)] * 3 + [stable(465.5)] * 3) * 4 + [stable(467.0)] * 3
+    assert [m.weight_g for m in feed(log, frames)] == [465.0, 467.0]
 
 
 def test_history_is_newest_first_and_bounded() -> None:
