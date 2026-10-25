@@ -3,12 +3,14 @@
 [![CI](https://github.com/jaxer/ha-qn-kitchen-scale/actions/workflows/ci.yml/badge.svg)](https://github.com/jaxer/ha-qn-kitchen-scale/actions/workflows/ci.yml)
 [![HACS](https://img.shields.io/badge/HACS-custom-41BDF5.svg)](https://hacs.xyz)
 
-<a href="https://www.arboleaf.com/products/food-scale-ck10a"><img src="docs/images/scale.png" alt="Arboleaf CK10A kitchen scale (photo: Arboleaf)" width="200" align="right"></a>
-
 Local Bluetooth integration for **QN-KS** kitchen scales: the ones sold as **Yolanda CK10A**,
 **Arboleaf CK10A** and under other names, with the "Yolanda" / "Arboleaf" phone app.
 No cloud, no app: Home Assistant connects to the scale through any Bluetooth adapter or
 ESPHome Bluetooth proxy and reads the weight stream directly.
+
+<p align="center">
+  <a href="https://www.arboleaf.com/products/food-scale-ck10a"><img src="docs/images/scale.png" alt="Arboleaf CK10A kitchen scale (photo: Arboleaf)" width="200"></a>
+</p>
 
 ## What you get
 
