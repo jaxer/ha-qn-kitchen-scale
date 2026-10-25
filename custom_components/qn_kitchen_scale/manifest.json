@@ -1,6 +1,7 @@
 {
   "domain": "qn_kitchen_scale",
   "name": "QN Kitchen Scale (Yolanda, Arboleaf CK10A)",
+  "after_dependencies": ["frontend", "http"],
   "bluetooth": [
     {
       "local_name": "QN-KS",
@@ -10,7 +11,6 @@
   "codeowners": ["@jaxer"],
   "config_flow": true,
   "dependencies": ["bluetooth_adapters"],
-  "after_dependencies": ["frontend", "http"],
   "documentation": "https://github.com/jaxer/ha-qn-kitchen-scale",
   "integration_type": "device",
   "iot_class": "local_push",
