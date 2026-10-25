@@ -1,0 +1,37 @@
+{
+  "config": {
+    "flow_title": "QN-KS {address}",
+    "step": {
+      "user": {
+        "description": "Включите весы, чтобы они стали видны, и выберите их.",
+        "data": {
+          "address": "Весы"
+        }
+      },
+      "bluetooth_confirm": {
+        "description": "Добавить кухонные весы QN-KS {address}?"
+      }
+    },
+    "abort": {
+      "already_configured": "Эти весы уже настроены.",
+      "already_in_progress": "Эти весы уже добавляются.",
+      "no_devices_found": "Весы QN-KS не видны. Включите их и попробуйте снова."
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "connected": { "name": "Подключены" }
+    },
+    "sensor": {
+      "weight": { "name": "Вес" },
+      "last_measurement": { "name": "Последнее измерение" },
+      "battery": { "name": "Батарея" }
+    }
+  },
+  "services": {
+    "clear_measurements": {
+      "name": "Очистить измерения",
+      "description": "Забыть сохранённую историю измерений всех настроенных весов."
+    }
+  }
+}

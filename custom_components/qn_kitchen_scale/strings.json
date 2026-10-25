@@ -1,0 +1,37 @@
+{
+  "config": {
+    "flow_title": "QN-KS {address}",
+    "step": {
+      "user": {
+        "description": "Switch the scale on so it advertises, then pick it.",
+        "data": {
+          "address": "Scale"
+        }
+      },
+      "bluetooth_confirm": {
+        "description": "Add the QN-KS kitchen scale {address}?"
+      }
+    },
+    "abort": {
+      "already_configured": "This scale is already configured.",
+      "already_in_progress": "This scale is already being set up.",
+      "no_devices_found": "No QN-KS scale in range. Switch it on and try again."
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "connected": { "name": "Connected" }
+    },
+    "sensor": {
+      "weight": { "name": "Weight" },
+      "last_measurement": { "name": "Last measurement" },
+      "battery": { "name": "Battery" }
+    }
+  },
+  "services": {
+    "clear_measurements": {
+      "name": "Clear measurements",
+      "description": "Forget the stored measurement history of every configured scale."
+    }
+  }
+}
