@@ -1,7 +1,8 @@
 """Turn the raw 5 Hz stream into discrete measurements.
 
 A *measurement* is a stable reading that stayed the same for a few frames and
-differs from the previous measurement; negative readings after tare count too.
+differs from the previous measurement by more than a tolerance (1 % of it, at
+least 1 g); negative readings after tare count too.
 Putting a bowl on the scale, then adding flour, then adding sugar yields three
 measurements, each with the difference to the previous one, so the log reads
 like a recipe.
@@ -20,6 +21,7 @@ from .const import (
     DEFAULT_MIN_DELTA_G,
     DEFAULT_MIN_WEIGHT_G,
     DEFAULT_STABLE_FRAMES,
+    DEFAULT_TOLERANCE,
 )
 from .protocol import Frame
 
@@ -63,6 +65,7 @@ class MeasurementLog:
     stable_frames: int = DEFAULT_STABLE_FRAMES
     min_weight_g: float = DEFAULT_MIN_WEIGHT_G
     min_delta_g: float = DEFAULT_MIN_DELTA_G
+    tolerance: float = DEFAULT_TOLERANCE
     history_size: int = DEFAULT_HISTORY_SIZE
     measurements: list[Measurement] = field(default_factory=list)
     session: int = 0
@@ -101,7 +104,7 @@ class MeasurementLog:
             return None
 
         previous = self._last_recorded_g
-        if previous is not None and abs(frame.weight_g - previous) < self.min_delta_g:
+        if previous is not None and abs(frame.weight_g - previous) < self._threshold(previous):
             return None
 
         measurement = Measurement(
@@ -120,6 +123,10 @@ class MeasurementLog:
         self.measurements.clear()
         self._last_recorded_g = None
         self._reset_streak()
+
+    def _threshold(self, previous_g: float) -> float:
+        """Smallest change from the previous measurement that counts as a new one."""
+        return max(self.min_delta_g, abs(previous_g) * self.tolerance)
 
     def _reset_streak(self) -> None:
         self._streak_weight = None

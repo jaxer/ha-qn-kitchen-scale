@@ -59,8 +59,31 @@ def test_flicker_between_adjacent_readings_is_noise() -> None:
     """A real scale alternates 465.0 / 465.5 g while nothing changes."""
     log = MeasurementLog()
     log.start_session()
-    frames = ([stable(465.0)] * 3 + [stable(465.5)] * 3) * 4 + [stable(467.0)] * 3
-    assert [m.weight_g for m in feed(log, frames)] == [465.0, 467.0]
+    frames = ([stable(465.0)] * 3 + [stable(465.5)] * 3) * 4 + [stable(475.0)] * 3
+    assert [m.weight_g for m in feed(log, frames)] == [465.0, 475.0]
+
+
+def test_small_drift_of_a_heavy_load_is_within_tolerance() -> None:
+    """At 1.5 kg the scale wanders by a few grams; 1 % absorbs that."""
+    log = MeasurementLog()
+    log.start_session()
+    frames = (
+        [stable(1595)] * 3
+        + [moving(1600)]
+        + [stable(1601)] * 3
+        + [moving(1620)]
+        + [stable(1625)] * 3
+    )
+    assert [m.weight_g for m in feed(log, frames)] == [1595.0, 1625.0]
+
+
+def test_tolerance_never_drops_below_one_gram() -> None:
+    log = MeasurementLog()
+    log.start_session()
+    frames = (
+        [stable(20.0)] * 3 + [moving(20.4)] + [stable(20.5)] * 3 + [moving(21)] + [stable(21.0)] * 3
+    )
+    assert [m.weight_g for m in feed(log, frames)] == [20.0, 21.0]
 
 
 def test_history_is_newest_first_and_bounded() -> None:
