@@ -3,6 +3,8 @@
 [![CI](https://github.com/jaxer/ha-qn-kitchen-scale/actions/workflows/ci.yml/badge.svg)](https://github.com/jaxer/ha-qn-kitchen-scale/actions/workflows/ci.yml)
 [![HACS](https://img.shields.io/badge/HACS-custom-41BDF5.svg)](https://hacs.xyz)
 
+<a href="https://www.arboleaf.com/products/food-scale-ck10a"><img src="docs/images/scale.png" alt="Arboleaf CK10A kitchen scale (photo: Arboleaf)" width="200" align="right"></a>
+
 Local Bluetooth integration for **QN-KS** kitchen scales: the ones sold as **Yolanda CK10A**,
 **Arboleaf CK10A** and under other names, with the "Yolanda" / "Arboleaf" phone app.
 No cloud, no app: Home Assistant connects to the scale through any Bluetooth adapter or
@@ -49,7 +51,27 @@ Switch the scale on. Home Assistant discovers it (`QN-KS`) and offers to add it 
 Settings → Devices & services. You can also add it by hand from the same page while the scale is awake:
 search for "QN", "Yolanda" or "Arboleaf".
 
-## Showing the history on a dashboard
+## Dashboard card
+
+The integration ships its own card and loads it on every dashboard: no resource to add. Pick
+**QN Kitchen Scale** in the card picker, or:
+
+```yaml
+type: custom:qn-kitchen-scale-card
+entity: sensor.qn_ks_weight   # optional: the first scale is used without it
+```
+
+![The card at 6 × 1, 6 × 2 and 12 × 3 in the light theme](docs/images/card-light.png)
+![The same sizes in the dark theme](docs/images/card-dark.png)
+
+It shows the live weight with a *Stable* tag once the reading settles, a *Tare* tag and the display
+unit when they are set on the scale, Bluetooth and battery icons, and the latest measurements
+(absolute weight, the change in grey) with a button that clears them after a confirmation. In a
+sections dashboard the card adapts to its size: at 3 × 1 it shows only the weight, and the list
+shows as many measurements as the height fits. Elsewhere it shows `max_items` measurements
+(default 5).
+
+### Markdown alternative
 
 A Markdown card renders the `measurements` attribute as a table, newest first:
 
