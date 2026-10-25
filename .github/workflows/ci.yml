@@ -31,6 +31,3 @@ jobs:
       - uses: hacs/action@main
         with:
           category: integration
-          # Brand assets are submitted to home-assistant/brands separately; until that PR is merged
-          # the brands check cannot pass.
-          ignore: brands

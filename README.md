@@ -46,7 +46,8 @@ Copy `custom_components/qn_kitchen_scale` into your `config/custom_components` f
 ## Setup
 
 Switch the scale on. Home Assistant discovers it (`QN-KS`) and offers to add it under
-Settings → Devices & services. You can also add it by hand from the same page while the scale is awake.
+Settings → Devices & services. You can also add it by hand from the same page while the scale is awake:
+search for "QN", "Yolanda" or "Arboleaf".
 
 ## Showing the history on a dashboard
 
