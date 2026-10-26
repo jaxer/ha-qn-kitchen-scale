@@ -467,8 +467,15 @@ class QnKitchenScaleCard extends HTMLElement {
   }
 }
 
-if (!customElements.get(CARD_TYPE)) {
-  customElements.define(CARD_TYPE, QnKitchenScaleCard);
+// Home Assistant swaps window.customElements for a scoped-registry polyfill while its core bundle
+// loads. A card defined before that swap sits in the native registry, which the polyfill never
+// consults, and the dashboard shows "Custom element doesn't exist": on a hard reload this small
+// file lands long before the core bundle. <home-assistant> is defined after the swap, so the card
+// waits for it and then registers on whatever registry is current.
+function defineCard() {
+  const registry = window.customElements;
+  if (registry.get(CARD_TYPE)) return;
+  registry.define(CARD_TYPE, QnKitchenScaleCard);
   window.customCards = window.customCards || [];
   window.customCards.push({
     type: CARD_TYPE,
@@ -478,3 +485,4 @@ if (!customElements.get(CARD_TYPE)) {
     documentationURL: "https://github.com/jaxer/ha-qn-kitchen-scale",
   });
 }
+customElements.whenDefined("home-assistant").then(defineCard);

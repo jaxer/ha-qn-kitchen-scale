@@ -18,7 +18,7 @@ async def test_card_is_served_and_loaded_with_the_frontend(hass: HomeAssistant) 
     routes = {r.canonical for r in hass.http.app.router.resources()}
     assert CARD_URL in routes
     assert CARD_PATH.is_file()
-    add_js.assert_called_once_with(hass, f"{CARD_URL}?v=0.2.0")
+    add_js.assert_called_once_with(hass, f"{CARD_URL}?v=0.2.1")
 
 
 async def test_no_card_without_the_frontend(hass: HomeAssistant) -> None:

@@ -1,6 +1,6 @@
 [project]
 name = "ha-qn-kitchen-scale"
-version = "0.2.0"
+version = "0.2.1"
 description = "Home Assistant integration for QN-KS Bluetooth kitchen scales"
 requires-python = ">=3.14"
 license = "MIT"
