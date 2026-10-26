@@ -68,7 +68,10 @@ entity: sensor.qn_ks_weight   # optional: the first scale is used without it
 
 It shows the live weight with a *Stable* tag once the reading settles, a *Tare* tag and the display
 unit when they are set on the scale, Bluetooth and battery icons, and the latest measurements
-(absolute weight, the change in grey) with a button that clears them after a confirmation. In a
+(absolute weight, the change in grey) with a button that clears them after a confirmation. Each
+scale session (switching the scale on) opens with the time it started, *Today, 14:32* or *20 Oct, 08:40*,
+so the measurements you just made stand apart from older ones; a card with fewer than three rows
+shows the plain list. In a
 sections dashboard the card adapts to its size: at 3 × 1 it shows only the weight, and the list
 shows as many measurements as the height fits. Elsewhere it shows `max_items` measurements
 (default 5).

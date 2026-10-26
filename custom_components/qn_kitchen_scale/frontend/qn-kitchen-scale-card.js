@@ -6,6 +6,8 @@ const CARD_TYPE = "qn-kitchen-scale-card";
 // Height of one history row in px; the card shows as many rows as fit.
 const ROW = 24;
 const DEFAULT_MAX_ITEMS = 5;
+// Session headers take a row each; below this many rows the list stays flat.
+const MIN_ROWS_FOR_SESSIONS = 3;
 
 const STRINGS = {
   en: {
@@ -102,6 +104,9 @@ svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; 
 :host([no-history]) .history { display: none; }
 ol { list-style: none; margin: 0; padding: 0 36px 0 0; }
 li { display: grid; grid-template-columns: 80px minmax(0, 1fr); align-items: center; gap: 8px; height: ${ROW}px; font-size: 13px; }
+/* When a scale session started: a small caption with a rule running to the right. */
+.s { grid-template-columns: auto minmax(0, 1fr); font-size: 10px; font-weight: 500; letter-spacing: 0.5px; text-transform: uppercase; color: var(--_sec); }
+.s::after { content: ""; height: 1px; background: var(--_divider); }
 .w { font-weight: 500; }
 .d { font-size: 12px; color: var(--_sec); }
 .empty { margin: 0; display: flex; align-items: center; justify-content: center; font-size: 13px; color: var(--_sec); }
@@ -145,6 +150,7 @@ button:focus-visible { outline: 2px solid var(--_accent); outline-offset: 1px; }
   .tags, .icon, .spacer, .d { display: none; }
   .now { justify-content: center; }
   li { grid-template-columns: 1fr; }
+  .s { display: none; }
 }
 `);
 
@@ -206,6 +212,17 @@ function resolveEntities(hass, config) {
     battery: config.battery_entity || byKey.battery || `sensor.${base}_battery`,
     connected: config.connected_entity || byKey.connected || `binary_sensor.${base}_connected`,
   };
+}
+
+// When the session of items[i] started: the time of its oldest measurement in the (newest-first) list.
+function sessionStart(items, i) {
+  let j = i;
+  while (j + 1 < items.length && items[j + 1].session === items[i].session) j += 1;
+  return items[j].at;
+}
+
+function startOfDay(d) {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
 }
 
 function strings(hass) {
@@ -376,7 +393,20 @@ class QnKitchenScaleCard extends HTMLElement {
     const items = (last && last.attributes.measurements) || [];
     this.toggleAttribute("no-history", this._rows === 0);
     const lang = (this._hass.locale && this._hass.locale.language) || "en";
-    const rows = items.slice(0, this._rows).map((m) => {
+    const rows = [];
+    // Each scale session (switch-on) opens with the time it started, so the measurements just made
+    // stand apart from older ones. Too few rows for that: the plain list, as before.
+    const headers = this._rows >= MIN_ROWS_FOR_SESSIONS;
+    for (const [i, m] of items.entries()) {
+      if (rows.length >= this._rows) break;
+      if (headers && (i === 0 || m.session !== items[i - 1].session)) {
+        // A header needs a measurement under it; the last row goes to the measurement instead.
+        if (rows.length + 1 >= this._rows) break;
+        const h = document.createElement("li");
+        h.className = "s";
+        h.append(Object.assign(document.createElement("span"), { textContent: this._when(sessionStart(items, i)) }));
+        rows.push(h);
+      }
       const li = document.createElement("li");
       li.title = new Date(m.at).toLocaleTimeString(lang);
       const w = Object.assign(document.createElement("span"), {
@@ -388,8 +418,8 @@ class QnKitchenScaleCard extends HTMLElement {
         textContent: m.delta_g == null ? "" : `${this._signed(m.delta_g)} g`,
       });
       li.append(w, d);
-      return li;
-    });
+      rows.push(li);
+    }
     // Both keep the full row height even when half empty, so the card does not shrink and lose
     // rows before new measurements arrive.
     el.list.replaceChildren(...rows);
@@ -409,6 +439,26 @@ class QnKitchenScaleCard extends HTMLElement {
       minimumFractionDigits: digits,
       maximumFractionDigits: digits,
     }).format(value);
+  }
+
+  // "Today, 14:32", "Yesterday, 19:05", then "20 Oct, 08:40" (with the year once it differs).
+  _when(iso) {
+    const at = new Date(iso);
+    const now = new Date();
+    const lang = (this._hass.locale && this._hass.locale.language) || "en";
+    const hour12 = this._hass.locale && this._hass.locale.time_format === "12" ? true
+      : this._hass.locale && this._hass.locale.time_format === "24" ? false : undefined;
+    const time = at.toLocaleTimeString(lang, { hour: "numeric", minute: "2-digit", hour12 });
+    const days = Math.round((startOfDay(at) - startOfDay(now)) / 86400000);
+    let day;
+    if (days === 0 || days === -1) {
+      day = new Intl.RelativeTimeFormat(lang, { numeric: "auto" }).format(days, "day");
+      day = day.charAt(0).toUpperCase() + day.slice(1);
+    } else {
+      const sameYear = at.getFullYear() === now.getFullYear();
+      day = at.toLocaleDateString(lang, { day: "numeric", month: "short", year: sameYear ? undefined : "numeric" });
+    }
+    return `${day}, ${time}`;
   }
 
   _signed(value) {
